@@ -2,6 +2,42 @@
 
 Handcrafted CLI chat with knowledge retention to Markdown. Retain reads file-based context and assembles a system prompt before each session, so every conversation builds on what came before.
 
+## Getting Started
+
+**Prerequisites:** [Bun](https://bun.sh) and an [Anthropic API key](https://console.anthropic.com/).
+
+**1. Clone and install dependencies**
+
+```bash
+git clone https://github.com/your-username/retain.git
+cd retain
+bun install
+```
+
+**2. Set your API key**
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Add this to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.) to persist it across sessions.
+
+**3. Register the global command**
+
+```bash
+bun link
+```
+
+This registers `retain` in `~/.bun/bin/retain`. Make sure `~/.bun/bin` is on your `PATH`.
+
+**4. Start chatting**
+
+```bash
+retain
+```
+
+That's it. Retain will assemble your context from `workspace/` and open an interactive chat session.
+
 ## Structure
 
 ```
@@ -21,13 +57,13 @@ retain/
 
 ## File Roles
 
-| File                                 | Format   | Purpose                                                  |
-| ------------------------------------ | -------- | -------------------------------------------------------- |
-| `workspace/context/system_prompt.md` | Markdown | Base system prompt template                              |
-| `workspace/memories/USER.md`         | Markdown | Static profile: name, location, timezone, preferences    |
-| `workspace/memories/MEMORY.md`       | Markdown | Dynamic facts appended automatically via `[MEMORY]` tags |
-| `workspace/memories/PREFERENCES.md`  | Markdown | Coding style, workflow, and communication preferences    |
-| `workspace/sessions/*.jsonl`         | JSON Lines | Append-only chat history; one JSON object per line     |
+| File                                 | Format     | Purpose                                                  |
+| ------------------------------------ | ---------- | -------------------------------------------------------- |
+| `workspace/context/system_prompt.md` | Markdown   | Base system prompt template                              |
+| `workspace/memories/USER.md`         | Markdown   | Static profile: name, location, timezone, preferences    |
+| `workspace/memories/MEMORY.md`       | Markdown   | Dynamic facts appended automatically via `[MEMORY]` tags |
+| `workspace/memories/PREFERENCES.md`  | Markdown   | Coding style, workflow, and communication preferences    |
+| `workspace/sessions/*.jsonl`         | JSON Lines | Append-only chat history; one JSON object per line       |
 
 ## Session JSONL Schema
 
