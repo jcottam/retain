@@ -1,0 +1,14 @@
+# Environment
+.env
+
+# Dependencies
+node_modules/
+
+# Bun
+bun.lock
+
+# macOS
+.DS_Store
+
+# Sessions (runtime data)
+workspace/sessions/
