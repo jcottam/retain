@@ -7,7 +7,7 @@
  ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 ```
 
-Handcrafted CLI chat with knowledge retention to Markdown. Retain reads file-based context and assembles a system prompt before each session, so every conversation builds on what came before.
+Handcrafted CLI chat with persistent memory. Retain reads your notes, preferences, and past sessions before every conversation, so it always knows where you left off.
 
 ## Getting Started
 
