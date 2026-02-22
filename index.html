@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Retain — CLI Chat with Persistent Memory</title>
+    <title>MiniChat — Lightweight Terminal AI Chat with Memory</title>
     <meta
       name="description"
-      content="Your notes, preferences, and past sessions — loaded into every CLI conversation before you type a word. Open-source terminal chat with persistent memory."
+      content="A developer-native, open-source CLI chat with persistent memory. Lightweight, fast, and extensible — your notes, preferences, and sessions loaded before every conversation."
     />
     <meta
       property="og:title"
-      content="Retain — CLI Chat with Persistent Memory"
+      content="MiniChat — Lightweight Terminal AI Chat with Memory"
     />
     <meta
       property="og:description"
-      content="Your notes, preferences, and past sessions — loaded into every conversation before you type a word."
+      content="Developer-native terminal AI chat. Lightweight, stateful, and extensible with tools and skills."
     />
     <meta property="og:type" content="website" />
 
@@ -39,7 +39,7 @@
       };
     </script>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Tomorrow:wght@400;600;700;800&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Tomorrow:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;600&display=swap");
 
       :root {
         --amber: #e2a834;
@@ -209,9 +209,9 @@
       >
         <div class="flex items-center">
           <span
-            class="font-bold text-white text-xl tracking-widest uppercase"
-            style="font-family: &quot;Tomorrow&quot;, sans-serif"
-            >RETAIN</span
+            class="font-bold text-white text-xl tracking-widest"
+            style="font-family: &quot;Roboto Mono&quot;, sans-serif"
+            >MiniChat</span
           >
         </div>
         <div class="flex items-center gap-6">
@@ -226,7 +226,7 @@
             >Get Started</a
           >
           <a
-            href="https://github.com/jcottam/retain/tree/main"
+            href="https://github.com/jcottam/minichat/tree/main"
             target="_blank"
             rel="noopener"
             class="text-sm bg-zinc-800 text-white px-4 py-2 rounded-lg font-medium hover:bg-zinc-900 transition flex items-center gap-2"
@@ -250,22 +250,22 @@
             class="text-xs bg-[#e2a834]/10 text-[#e2a834] border border-[#e2a834]/20 px-3 py-1 rounded-full mono"
             >OPEN SOURCE</span
           >
-          <span class="text-sm text-zinc-600">Built with Bun + Ink</span>
+          <!-- <span class="text-sm text-zinc-600">Built with Bun + Ink</span> -->
         </div>
 
         <h1
-          class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium text-white leading-[1.08] mb-6 tracking-tight animate-in stagger-1"
-          style="font-family: &quot;Tomorrow&quot;, sans-serif"
+          class="text-4xl sm:text-5xl md:text-6xl lg:text-4xl font-medium text-white leading-[1.08] mb-6 tracking-tight animate-in stagger-1"
+          style="font-family: &quot;Roboto Mono&quot;, sans-serif"
         >
-          CLI chat that<br />
-          <span class="text-zinc-500">never forgets.</span>
+        Terminal AI Chat with Memory <br />
+          <span class="text-zinc-400 text-xl"> Minimal bytes, maximum vibes.</span>
         </h1>
 
         <p
           class="text-lg sm:text-xl text-zinc-400 max-w-2xl mb-10 leading-relaxed animate-in stagger-2 text-balance"
         >
-          Your notes, preferences, and past sessions loaded into every
-          conversation before you type a word.
+          Built for developers who live in the terminal. Fast to start,
+          lightweight to run, and stateful across every session.
         </p>
 
         <!-- Hero Terminal -->
@@ -283,14 +283,14 @@
           <div class="p-5 mono text-sm">
             <div class="flex items-center gap-2">
               <span class="text-[#e2a834]">$</span>
-              <span class="text-white">retain</span>
+              <span class="text-white">mchat</span>
             </div>
-            <div class="mt-4 text-[#e2a834] ascii-art whitespace-pre select-none"> ██████╗ ███████╗████████╗ █████╗ ██╗███╗   ██╗
- ██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██║████╗  ██║
- ██████╔╝█████╗     ██║   ███████║██║██╔██╗ ██║
- ██╔══██╗██╔══╝     ██║   ██╔══██║██║██║╚██╗██║
- ██║  ██║███████╗   ██║   ██║  ██║██║██║ ╚████║
- ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝</div>
+            <div class="mt-4 text-[#e2a834] ascii-art whitespace-pre select-none"> ███╗   ███╗██╗███╗   ██╗██╗ ██████╗██╗  ██╗ █████╗ ████████╗
+ ████╗ ████║██║████╗  ██║██║██╔════╝██║  ██║██╔══██╗╚══██╔══╝
+ ██╔████╔██║██║██╔██╗ ██║██║██║     ███████║███████║   ██║
+ ██║╚██╔╝██║██║██║╚██╗██║██║██║     ██╔══██║██╔══██║   ██║
+ ██║ ╚═╝ ██║██║██║ ╚████║██║╚██████╗██║  ██║██║  ██║   ██║
+ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝</div>
             <div class="mt-4 space-y-1 text-xs">
               <p class="text-zinc-500">
                 ✦ Loading memories...
@@ -329,7 +329,7 @@
               Stop re-explaining yourself.
             </h2>
             <p class="text-zinc-400 mb-8 leading-relaxed">
-              Retain loads your profile, memories, and recent sessions on every
+              MiniChat loads your profile, memories, and recent sessions on every
               launch. Every conversation starts where the last one
               ended&mdash;no pasting, no catching up.
             </p>
@@ -341,9 +341,9 @@
                   <span class="text-zinc-200 font-medium">Learns as you talk</span>
                   <p class="text-sm text-zinc-500 mt-0.5">
                     Mention your stack, your goals, or your preferences once.
-                    Retain tags them as
+                    They're tagged as
                     <code class="mono text-xs text-[#e2a834]">[MEMORY]</code>
-                    and saves them for next time
+                    and saved for next time.
                   </p>
                 </div>
               </li>
@@ -354,8 +354,8 @@
                     >Picks up where you left off</span
                   >
                   <p class="text-sm text-zinc-500 mt-0.5">
-                    Recent conversations are summarized and carried forward.
-                    Come back days later and it still has context
+                    MiniChat summarizes recent conversations and carries them
+                    forward. Come back days later&mdash;it still has context.
                   </p>
                 </div>
               </li>
@@ -368,7 +368,7 @@
                   <p class="text-sm text-zinc-500 mt-0.5">
                     Everything is plain
                     <code class="mono text-xs text-zinc-400">.md</code>
-                    files&mdash;read, edit, or delete them anytime in any editor
+                    files&mdash;read, edit, or delete them anytime in any editor.
                   </p>
                 </div>
               </li>
@@ -377,8 +377,8 @@
                 <div>
                   <span class="text-zinc-200 font-medium">Clean context, no noise</span>
                   <p class="text-sm text-zinc-500 mt-0.5">
-                    Facts are compared before saving&mdash;no duplicates,
-                    no bloat, no manual pruning
+                    Duplicates are caught before they're saved&mdash;your
+                    context stays clean without manual pruning.
                   </p>
                 </div>
               </li>
@@ -401,7 +401,7 @@
             </div>
             <pre
               class="p-5 overflow-x-auto"
-            ><code class="mono"><span class="token-comment">// On every launch, Retain builds context from:</span>
+            ><code class="mono"><span class="token-comment">// On every launch, MiniChat builds context from:</span>
 
 <span class="token-key">workspace/</span>
 ├── <span class="token-key">context/</span>
@@ -439,8 +439,8 @@
             Everything happens in the terminal.
           </h2>
           <p class="text-zinc-500 max-w-xl mx-auto text-balance">
-            No electron apps. No browser tabs. Just a terminal, your memories,
-            and a conversation that picks up where it left off.
+            No electron apps. No browser tabs. A fast, lightweight CLI
+            with persistent memory and an extensible tools ecosystem.
           </p>
         </div>
 
@@ -468,7 +468,7 @@
             </div>
             <h3 class="font-medium text-white mb-2">Persistent Memory</h3>
             <p class="text-sm text-zinc-500">
-              Mention something once and Retain saves it. Your facts carry
+              Mention something once and it's saved. Your facts carry
               forward across every session&mdash;no re-explaining.
             </p>
           </div>
@@ -551,10 +551,10 @@
                 />
               </svg>
             </div>
-            <h3 class="font-medium text-white mb-2">Context Assembly</h3>
+            <h3 class="font-medium text-white mb-2">Fast Startup</h3>
             <p class="text-sm text-zinc-500">
-              On every launch, your profile, memories, and recent sessions
-              are combined into one prompt. Zero manual setup.
+              Your profile, memories, and sessions are assembled into one
+              prompt on launch. No database, no daemon&mdash;just files.
             </p>
           </div>
 
@@ -608,10 +608,10 @@
                 />
               </svg>
             </div>
-            <h3 class="font-medium text-white mb-2">Fully Hackable</h3>
+            <h3 class="font-medium text-white mb-2">Extensible by Design</h3>
             <p class="text-sm text-zinc-500">
-              TypeScript + Ink TUI. Edit the system prompt, tweak memory
-              extraction, add slash commands. It's your tool.
+              Add tools, skills, and custom slash commands. TypeScript +
+              Ink TUI&mdash;fork it, extend it, make it yours.
             </p>
           </div>
         </div>
@@ -625,10 +625,11 @@
           <h2
             class="text-2xl sm:text-3xl font-medium text-white mb-4 tracking-tight"
           >
-            Memory in action.
+            See it remember.
           </h2>
           <p class="text-zinc-500">
-            Learn and remember across conversations.
+            A fact from Monday's session shows up in Thursday's
+            answer&mdash;without being asked.
           </p>
         </div>
 
@@ -642,7 +643,7 @@
             <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
             <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
             <span class="text-xs text-zinc-600 ml-2 mono"
-              >retain &mdash; session 004</span
+              >mchat &mdash; session 004</span
             >
           </div>
           <div class="p-5 mono text-sm space-y-5">
@@ -752,12 +753,12 @@
               <p class="text-zinc-500">
                 <span class="text-[#4ade80]">$</span>
                 <span class="text-zinc-300"
-                  >git clone https://github.com/jcottam/retain.git</span
+                  >git clone https://github.com/jcottam/minichat.git</span
                 >
               </p>
               <p class="text-zinc-500">
                 <span class="text-[#4ade80]">$</span>
-                <span class="text-zinc-300">cd retain && bun install</span>
+                <span class="text-zinc-300">cd minichat && bun install</span>
               </p>
             </div>
           </div>
@@ -778,7 +779,7 @@
             <div class="bg-[#0a0a0b] rounded-lg p-3 mono text-xs">
               <p class="text-zinc-500">
                 <span class="text-[#4ade80]">$</span>
-                <span class="text-zinc-300">mkdir -p ~/.config/retain</span>
+                <span class="text-zinc-300">mkdir -p ~/.config/minichat</span>
               </p>
               <p class="text-zinc-500">
                 <span class="text-[#4ade80]">$</span>
@@ -788,7 +789,7 @@
               </p>
               <p class="text-zinc-500">
                 &nbsp;&nbsp;<span class="text-zinc-300"
-                  >&gt; ~/.config/retain/.env</span
+                  >&gt; ~/.config/minichat/.env</span
                 >
               </p>
             </div>
@@ -813,7 +814,7 @@
                 <span class="text-zinc-300">bun link</span>
               </p>
               <p class="text-zinc-600 mt-1">
-                → Registered retain in ~/.bun/bin
+                → Registered mchat in ~/.bun/bin
               </p>
             </div>
           </div>
@@ -832,7 +833,7 @@
             <div class="bg-[#0a0a0b] rounded-lg p-3 mono text-xs">
               <p class="text-zinc-500">
                 <span class="text-[#4ade80]">$</span>
-                <span class="text-zinc-300">retain</span>
+                <span class="text-zinc-300">mchat</span>
               </p>
               <p class="text-[#4ade80] mt-1">
                 ✓ Context assembled. Ready to chat.
@@ -849,23 +850,23 @@
         <h2
           class="text-3xl sm:text-4xl font-medium text-white mb-4 tracking-tight"
         >
-          Your terminal, with a memory.
+          Minimal bytes, maximum vibes.
         </h2>
         <p class="text-zinc-500 mb-10">
-          Clone the repo, add your API key, and never re-explain yourself
-          to an AI again.
+          Install MiniChat, add your API key, and pick up every
+          conversation where you left off.
         </p>
 
         <div
           class="relative bg-[#131315] border border-[#232326] rounded-xl p-4 max-w-lg mx-auto mb-8 glow-amber-sm group"
         >
           <code class="mono text-sm text-zinc-300"
-            >git clone https://github.com/jcottam/retain.git</code
+            >git clone https://github.com/jcottam/minichat.git</code
           >
           <button
             onclick="
               navigator.clipboard
-                .writeText('git clone https://github.com/jcottam/retain.git')
+                .writeText('git clone https://github.com/jcottam/minichat.git')
                 .then(() => {
                   const i = this.querySelector('.icon-copy'),
                     c = this.querySelector('.icon-check');
@@ -917,7 +918,7 @@
 
         <div class="flex items-center justify-center gap-8 text-sm">
           <a
-            href="https://github.com/jcottam/retain/tree/main"
+            href="https://github.com/jcottam/minichat/tree/main"
             target="_blank"
             rel="noopener"
             class="text-zinc-400 hover:text-white transition flex items-center gap-2 group"
@@ -946,7 +947,7 @@
           <span
             class="font-medium text-zinc-500 text-sm tracking-widest uppercase"
             style="font-family: &quot;Tomorrow&quot;, sans-serif"
-            >RETAIN</span
+            >MINICHAT</span
           >
           <span class="text-zinc-600 text-sm"
             >&copy; 2026 John Ryan Cottam</span
@@ -954,7 +955,7 @@
         </div>
         <div class="flex gap-6 text-sm text-zinc-600">
           <a
-            href="https://github.com/jcottam/retain/tree/main"
+            href="https://github.com/jcottam/minichat/tree/main"
             target="_blank"
             rel="noopener"
             class="hover:text-white transition"

@@ -12,3 +12,8 @@ bun.lock
 
 # Sessions (runtime data)
 workspace/sessions/
+
+# SQLite database (runtime data)
+workspace/minichat.db
+workspace/minichat.db-shm
+workspace/minichat.db-wal

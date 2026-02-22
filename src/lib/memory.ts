@@ -1,30 +1,39 @@
 import { join } from "path";
 import { readFileSync, writeFileSync, existsSync } from "fs";
+import {
+  dbInsertMemory,
+  dbGetActiveMemories,
+  dbFindMemoryByFact,
+  type MemoryRow,
+} from "./db";
+import { getCurrentSessionId } from "./session";
+import { upsertMemory, isVectorEnabled } from "./vector";
 
 const STORE_ROOT = join(import.meta.dir, "../../workspace/");
-const FACTS_FILE = join(STORE_ROOT, "memories/MEMORY.md");
-const MEMORIES_DIR = join(STORE_ROOT, "memories");
+const FACTS_FILE = join(STORE_ROOT, "context/MEMORY.md");
+const CONTEXT_DIR = join(STORE_ROOT, "context");
 
-/** Reads a file from workspace/memories/ by filename. Returns content or an error string. */
 export function readMemoryFile(filename: string): string {
-  const filePath = join(MEMORIES_DIR, filename);
+  const filePath = join(CONTEXT_DIR, filename);
   if (!existsSync(filePath)) {
-    return `No file found at workspace/memories/${filename}`;
+    return `No file found at workspace/context/${filename}`;
   }
   return readFileSync(filePath, "utf-8");
 }
 
+export function getActiveMemories(): MemoryRow[] {
+  return dbGetActiveMemories();
+}
+
 /**
- * Scans an assistant response for [MEMORY] blocks and appends extracted
- * facts as bullet points to memories/MEMORY.md.
+ * Scans an assistant response for [MEMORY] blocks, saves to SQLite,
+ * and syncs the markdown file.
  *
  * Handles two formats:
  *   Single-line:  [MEMORY] Jamie loves skiing
  *   Multi-line:   [MEMORY] Updated facts:
  *                 - fact one
  *                 - fact two
- *
- * Returns the list of saved facts.
  */
 export function extractAndSaveMemories(responseText: string): string[] {
   const saved: string[] = [];
@@ -33,16 +42,15 @@ export function extractAndSaveMemories(responseText: string): string[] {
 
   while (i < lines.length) {
     const trimmedLine = lines[i].trimStart();
+    const memIdx = trimmedLine.indexOf("[MEMORY]");
 
-    if (!trimmedLine.startsWith("[MEMORY]")) {
+    if (memIdx === -1) {
       i++;
       continue;
     }
 
-    // Text on the same line as [MEMORY], after the tag
-    const inline = trimmedLine.slice("[MEMORY]".length).trim();
+    const inline = trimmedLine.slice(memIdx + "[MEMORY]".length).trim();
 
-    // Check if the next lines are bullet points
     const bullets: string[] = [];
     let j = i + 1;
     while (j < lines.length) {
@@ -51,7 +59,6 @@ export function extractAndSaveMemories(responseText: string): string[] {
         bullets.push(next.slice(2).trim());
         j++;
       } else if (next === "") {
-        // Allow one blank line inside the block then stop
         j++;
         break;
       } else {
@@ -61,29 +68,45 @@ export function extractAndSaveMemories(responseText: string): string[] {
     i = j;
 
     if (bullets.length > 0) {
-      // Multi-line block: save each bullet, ignore the inline header
       for (const bullet of bullets) {
-        if (appendToFacts(bullet)) saved.push(bullet);
+        if (saveFact(bullet)) saved.push(bullet);
       }
     } else {
-      // Single-line: save the inline text (strip generic prefixes)
-      const fact = inline.replace(/^(added|updated) to \w+:\s*/i, "");
-      if (fact && appendToFacts(fact)) saved.push(fact);
+      // Strip generic prefixes, then take only the first sentence as the fact
+      const cleaned = inline.replace(/^(added|updated) to \w+:\s*/i, "");
+      const sentenceEnd = cleaned.search(/[.!?]\s+[A-Z]/);
+      const fact = sentenceEnd !== -1 ? cleaned.slice(0, sentenceEnd + 1) : cleaned.replace(/[.!?]+$/, "").trim();
+      if (fact && saveFact(fact)) saved.push(fact);
     }
+  }
+
+  if (saved.length > 0) {
+    syncMemoryMarkdown();
   }
 
   return saved;
 }
 
-/** Appends a fact bullet to MEMORY.md. Returns true if written, false if duplicate. */
-function appendToFacts(fact: string): boolean {
-  if (!existsSync(FACTS_FILE)) return false;
+function saveFact(fact: string): boolean {
+  const existing = dbFindMemoryByFact(fact);
+  if (existing) return false;
 
-  const current = readFileSync(FACTS_FILE, "utf-8");
-  const bullet = `- ${fact}`;
+  const sessionId = getCurrentSessionId();
+  const memoryId = dbInsertMemory(fact, "general", sessionId, new Date().toISOString());
 
-  if (current.includes(bullet)) return false;
+  if (isVectorEnabled()) {
+    upsertMemory(memoryId, fact, "general").catch(() => {});
+  }
 
-  writeFileSync(FACTS_FILE, current.trimEnd() + "\n" + bullet + "\n", "utf-8");
   return true;
+}
+
+function syncMemoryMarkdown(): void {
+  const memories = dbGetActiveMemories();
+  const lines = ["# MEMORY.md - Persistent Memories", "", "## General Facts", ""];
+  for (const mem of memories) {
+    lines.push(`- ${mem.fact}`);
+  }
+  lines.push("");
+  writeFileSync(FACTS_FILE, lines.join("\n"), "utf-8");
 }

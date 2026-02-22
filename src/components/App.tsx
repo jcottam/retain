@@ -1,38 +1,28 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import MessageList from "./MessageList";
 import InputBox from "./InputBox";
 import Header from "./Header";
-import { chat } from "../lib/anthropic";
-import { appendMessage } from "../lib/session";
+import { chatWithTools, summarize } from "../lib/anthropic";
+import { appendMessage, listRecentSessions, resumeSession, embedCurrentSession, embedSessionWithSummary } from "../lib/session";
 import { extractAndSaveMemories, readMemoryFile } from "../lib/memory";
+import { dbSearch } from "../lib/db";
+import { buildAugmentedPrompt, getInstalledSkills } from "../lib/context";
+import { isVectorEnabled } from "../lib/vector";
 import type { Message } from "../types";
 
 interface SlashCommand {
   name: string;
   description: string;
-  handler: () => string;
+  handler: (args?: string) => string | Promise<string>;
+  takesArgs?: boolean;
 }
 
-const HELP_TEXT = `Available commands:
-  /help         Show this help message
-  /memories     Display saved facts and memories
-  /preferences  Display user preferences
-  /profile      Display user profile
-
-Press Ctrl+C or Escape to quit.`;
-
 const SLASH_COMMAND_LIST: SlashCommand[] = [
-  // { name: "/help",        description: "Show available commands",       handler: () => HELP_TEXT },
   {
     name: "/memories",
     description: "Display saved facts",
     handler: () => readMemoryFile("MEMORY.md"),
-  },
-  {
-    name: "/preferences",
-    description: "Display user preferences",
-    handler: () => readMemoryFile("PREFERENCES.md"),
   },
   {
     name: "/profile",
@@ -40,15 +30,68 @@ const SLASH_COMMAND_LIST: SlashCommand[] = [
     handler: () => readMemoryFile("USER.md"),
   },
   {
+    name: "/skills",
+    description: "List installed skills",
+    handler: () => {
+      const skills = getInstalledSkills();
+      if (skills.length === 0) return "No skills installed.\n\nAdd a skill by creating workspace/skills/<name>/SKILL.md";
+      const lines = ["Installed skills:\n"];
+      for (const s of skills) {
+        lines.push(`  ${s.name}  ${s.description}`);
+      }
+      return lines.join("\n");
+    },
+  },
+  {
+    name: "/search",
+    description: "Search across sessions and memories",
+    takesArgs: true,
+    handler: (query?: string) => {
+      if (!query) return "Usage: /search <query>";
+      const results = dbSearch(query, 10);
+      if (results.length === 0) return `No results found for "${query}".`;
+      const lines = [`Search results for "${query}":\n`];
+      for (const r of results) {
+        const prefix = r.source === "memory" ? "[memory]" : `[session: ${r.sessionTitle ?? r.sessionId}]`;
+        const excerpt = r.content.length > 200 ? r.content.slice(0, 200) + "…" : r.content;
+        lines.push(`${prefix} ${excerpt}`);
+      }
+      return lines.join("\n");
+    },
+  },
+  {
+    name: "/sessions",
+    description: "List recent sessions",
+    handler: () => {
+      const sessions = listRecentSessions(15);
+      if (sessions.length === 0) return "No sessions found.";
+      const lines = ["Recent sessions:\n"];
+      for (const s of sessions) {
+        const msgCount = s.messages.length;
+        const date = new Date(s.created_at).toLocaleDateString();
+        lines.push(`  ${s.id}  ${date}  "${s.title}"  (${msgCount} messages)`);
+      }
+      lines.push("\nUse /resume <session_id> to reload a session.");
+      return lines.join("\n");
+    },
+  },
+  {
+    name: "/resume",
+    description: "Resume a past session",
+    takesArgs: true,
+    handler: () => "Handled separately",
+  },
+  {
+    name: "/compact",
+    description: "Summarize and compress current session",
+    handler: () => "Handled separately",
+  },
+  {
     name: "/cancel",
     description: "Dismiss this menu",
     handler: () => "",
   },
 ];
-
-const SLASH_COMMANDS: Record<string, () => string> = Object.fromEntries(
-  SLASH_COMMAND_LIST.map((c) => [c.name, c.handler]),
-);
 
 interface Props {
   systemPrompt: string;
@@ -63,11 +106,13 @@ export default function App({ systemPrompt, initialMessages }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [savedMemories, setSavedMemories] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
+  const streamingRef = useRef("");
 
   const suggestions = useMemo(() => {
     if (!input.startsWith("/")) return [];
     const lower = input.toLowerCase();
-    return SLASH_COMMAND_LIST.filter((c) => c.name.startsWith(lower));
+    const base = lower.split(" ")[0];
+    return SLASH_COMMAND_LIST.filter((c) => c.name.startsWith(base));
   }, [input]);
 
   const handleChange = useCallback((value: string) => {
@@ -92,7 +137,8 @@ export default function App({ systemPrompt, initialMessages }: Props) {
         prev === suggestions.length - 1 ? 0 : prev + 1,
       );
     } else if (key.tab) {
-      setInput(suggestions[selectedSuggestion]?.name ?? input);
+      const cmd = suggestions[selectedSuggestion];
+      setInput(cmd?.takesArgs ? cmd.name + " " : cmd?.name ?? input);
       setSelectedSuggestion(0);
     }
   });
@@ -102,36 +148,79 @@ export default function App({ systemPrompt, initialMessages }: Props) {
       const raw = value.trim();
       if (!raw || isLoading) return;
 
-      // Any input beginning with "/" is treated exclusively as a slash command.
-      // Resolve to the highlighted suggestion when the typed text isn't an exact
-      // match, then hard-stop — never fall through to the LLM.
       if (raw.startsWith("/")) {
-        const resolved =
-          SLASH_COMMANDS[raw.toLowerCase()]
-            ? raw
-            : (suggestions[selectedSuggestion]?.name ?? raw);
+        const spaceIdx = raw.indexOf(" ");
+        const cmdName = spaceIdx === -1 ? raw.toLowerCase() : raw.slice(0, spaceIdx).toLowerCase();
+        const cmdArgs = spaceIdx === -1 ? undefined : raw.slice(spaceIdx + 1).trim();
 
-        if (resolved.toLowerCase() === "/cancel") {
+        const resolved =
+          SLASH_COMMAND_LIST.find((c) => c.name === cmdName)
+            ? cmdName
+            : (suggestions[selectedSuggestion]?.name ?? cmdName);
+
+        if (resolved === "/cancel") {
           setInput("");
           return;
         }
 
         setInput("");
 
-        const slashHandler = SLASH_COMMANDS[resolved.toLowerCase()];
-        const userMsg: Message = {
-          role: "user",
-          content: resolved,
-          timestamp: new Date().toISOString(),
-        };
-        const responseText = slashHandler
-          ? slashHandler()
+        // /resume needs special handling to swap messages state
+        if (resolved === "/resume") {
+          if (!cmdArgs) {
+            setMessages((prev) => [
+              ...prev,
+              { role: "user", content: raw, timestamp: new Date().toISOString() },
+              { role: "assistant", content: "Usage: /resume <session_id>", timestamp: new Date().toISOString() },
+            ]);
+            return;
+          }
+          const session = resumeSession(cmdArgs);
+          if (!session) {
+            setMessages((prev) => [
+              ...prev,
+              { role: "user", content: raw, timestamp: new Date().toISOString() },
+              { role: "assistant", content: `Session "${cmdArgs}" not found.`, timestamp: new Date().toISOString() },
+            ]);
+            return;
+          }
+          setMessages(session.messages);
+          return;
+        }
+
+        // /compact needs async handling
+        if (resolved === "/compact") {
+          setInput("");
+          setIsLoading(true);
+          try {
+            const transcript = messages
+              .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+              .join("\n\n");
+            const summary = await summarize(
+              "Summarize this conversation in 3-5 bullet points, preserving key facts, decisions, and action items. Be concise.",
+              transcript,
+            );
+            const compactMsg: Message = {
+              role: "assistant",
+              content: `Session compacted:\n\n${summary}`,
+              timestamp: new Date().toISOString(),
+            };
+            setMessages([compactMsg]);
+            embedSessionWithSummary(summary);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          } finally {
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        const slashCmd = SLASH_COMMAND_LIST.find((c) => c.name === resolved);
+        const userMsg: Message = { role: "user", content: raw, timestamp: new Date().toISOString() };
+        const responseText = slashCmd
+          ? await slashCmd.handler(cmdArgs)
           : `Unknown command: ${resolved}`;
-        const cmdResponse: Message = {
-          role: "assistant",
-          content: responseText,
-          timestamp: new Date().toISOString(),
-        };
+        const cmdResponse: Message = { role: "assistant", content: responseText, timestamp: new Date().toISOString() };
         setMessages((prev) => [...prev, userMsg, cmdResponse]);
         return;
       }
@@ -149,20 +238,65 @@ export default function App({ systemPrompt, initialMessages }: Props) {
       appendMessage(userMsg);
 
       try {
-        const responseText = await chat(systemPrompt, nextMessages);
-        const assistantMsg: Message = {
+        streamingRef.current = "";
+
+        const placeholderMsg: Message = {
+          role: "assistant",
+          content: "",
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, placeholderMsg]);
+
+        const activePrompt = isVectorEnabled()
+          ? await buildAugmentedPrompt(raw)
+          : systemPrompt;
+
+        const responseText = await chatWithTools(
+          activePrompt,
+          nextMessages,
+          (token) => {
+            streamingRef.current += token;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...updated[updated.length - 1],
+                content: streamingRef.current,
+              };
+              return updated;
+            });
+          },
+          (toolName) => {
+            streamingRef.current += `\n\n🔧 Using ${toolName}...\n`;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...updated[updated.length - 1],
+                content: streamingRef.current,
+              };
+              return updated;
+            });
+          },
+        );
+
+        const finalMsg: Message = {
           role: "assistant",
           content: responseText,
           timestamp: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, assistantMsg]);
-        appendMessage(assistantMsg);
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = finalMsg;
+          return updated;
+        });
+        appendMessage(finalMsg);
+        embedCurrentSession();
 
         const memories = extractAndSaveMemories(responseText);
         if (memories.length > 0) setSavedMemories(memories);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
+        setMessages((prev) => prev.slice(0, -1));
       } finally {
         setIsLoading(false);
       }

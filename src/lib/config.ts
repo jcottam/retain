@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-const CONFIG_DIR = join(process.env.HOME!, ".config", "retain");
+const CONFIG_DIR = join(process.env.HOME!, ".config", "minichat");
 const CONFIG_PATH = join(CONFIG_DIR, ".env");
 
 export function loadConfig(): void {

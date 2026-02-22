@@ -1,15 +1,18 @@
 {
-  "name": "retain",
+  "name": "minichat",
   "version": "0.1.0",
   "private": true,
   "bin": {
-    "retain": "./src/index.tsx"
+    "mchat": "./src/index.tsx",
+    "minichat": "./src/index.tsx"
   },
   "scripts": {
-    "start": "bun run src/index.tsx"
+    "start": "bun run src/index.tsx",
+    "test": "bun test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "latest",
+    "@upstash/vector": "^1.2.2",
     "ink": "latest",
     "ink-spinner": "latest",
     "ink-text-input": "latest",
