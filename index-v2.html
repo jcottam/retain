@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MiniChat — Lightweight Terminal AI Chat with Memory</title>
+    <meta
+      name="description"
+      content="A developer-native, open-source CLI chat with persistent memory. Lightweight, fast, and extensible — your notes, preferences, and sessions loaded before every conversation."
+    />
+    <meta
+      property="og:title"
+      content="MiniChat — Lightweight Terminal AI Chat with Memory"
+    />
+    <meta
+      property="og:description"
+      content="Developer-native terminal AI chat. Lightweight, stateful, and extensible with tools and skills."
+    />
+    <meta property="og:type" content="website" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "rt-amber": "#e2a834",
+              "rt-bg": "#0a0a0b",
+              "rt-card": "#131315",
+              "rt-border": "#232326",
+            },
+            fontFamily: {
+              display: ['"Oxanium"', "sans-serif"],
+              body: ['"Oxanium"', "sans-serif"],
+              mono: ['"JetBrains Mono"', "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Oxanium:wght@200;400;600;700;800&display=swap");
+
+      :root {
+        --amber: #e2a834;
+        --amber-dim: rgba(226, 168, 52, 0.08);
+        --bg: #0a0a0b;
+        --card: #131315;
+        --border: #232326;
+      }
+
+      body {
+        background: var(--bg);
+      }
+
+      .dot-grid {
+        background-image: radial-gradient(
+          circle,
+          rgba(226, 168, 52, 0.04) 1px,
+          transparent 1px
+        );
+        background-size: 40px 40px;
+      }
+
+      .glow-amber {
+        box-shadow:
+          0 0 60px rgba(226, 168, 52, 0.12),
+          0 0 120px rgba(226, 168, 52, 0.04);
+      }
+
+      .glow-amber-sm {
+        box-shadow: 0 0 30px rgba(226, 168, 52, 0.1);
+      }
+
+      .cursor-blink::after {
+        content: "▋";
+        animation: blink 1s step-end infinite;
+        color: var(--amber);
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .animate-in {
+        animation: fadeInUp 0.6s ease-out forwards;
+      }
+
+      .stagger-1 {
+        animation-delay: 0.1s;
+      }
+      .stagger-2 {
+        animation-delay: 0.2s;
+      }
+      .stagger-3 {
+        animation-delay: 0.3s;
+      }
+      .stagger-4 {
+        animation-delay: 0.4s;
+      }
+      .stagger-5 {
+        animation-delay: 0.5s;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+          opacity 0.6s ease-out,
+          transform 0.6s ease-out;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .token-key {
+        color: #a78bfa;
+      }
+      .token-string {
+        color: #4ade80;
+      }
+      .token-comment {
+        color: #52525b;
+      }
+      .token-bracket {
+        color: #71717a;
+      }
+      .token-bool {
+        color: #fb923c;
+      }
+
+      pre code {
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .hero-gradient {
+        background: radial-gradient(
+          ellipse 60% 50% at 50% 0%,
+          rgba(226, 168, 52, 0.06) 0%,
+          transparent 70%
+        );
+      }
+
+      .feature-card {
+        transition:
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .ascii-art {
+        font-size: 6px;
+        line-height: 1.1;
+        letter-spacing: 0.5px;
+      }
+
+      @media (min-width: 640px) {
+        .ascii-art {
+          font-size: 8px;
+        }
+      }
+
+      @media (min-width: 768px) {
+        .ascii-art {
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-[#0a0a0b] text-zinc-400 min-h-screen dot-grid antialiased font-body"
+  >
+    <!-- Navigation -->
+    <nav
+      class="border-b border-[#232326] sticky top-0 z-50 bg-[#0a0a0b]/80 backdrop-blur-xl"
+    >
+      <div
+        class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between"
+      >
+        <div class="flex items-center">
+          <span
+            class="font-medium text-amber-400 text-2xl tracking-widest font-display"
+            >MiniChat</span
+          >
+        </div>
+        <div class="flex items-center gap-6">
+          <a
+            href="#features"
+            class="text-sm text-zinc-500 hover:text-white transition hidden sm:block"
+            >Features</a
+          >
+          <a
+            href="#get-started"
+            class="text-sm text-zinc-500 hover:text-white transition hidden sm:block"
+            >Get Started</a
+          >
+          <a
+            href="https://github.com/jcottam/minichat/tree/main"
+            target="_blank"
+            rel="noopener"
+            class="text-sm bg-zinc-800 text-white px-4 py-2 rounded-lg font-medium hover:bg-zinc-900 transition flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              />
+            </svg>
+            <span class="hidden sm:inline">GitHub</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="px-6 pt-12 sm:pt-16 pb-16 hero-gradient">
+      <div class="max-w-4xl mx-auto">
+        <!-- <div class="flex items-center gap-2 mb-8 animate-in">
+          <span
+            class="text-xs bg-slate-400/10 text-slate-400 border border-[#e2a834]/20 px-3 py-1 rounded-full font-mono"
+            >OPEN SOURCE</span
+          >
+        </div> -->
+
+        <h1
+          class="text-4xl sm:text-5xl md:text-6xl lg:text-4xl font-medium text-white leading-[1.08] mb-6 animate-in stagger-1"
+        >
+          Stateful Chat for the Terminal <br />
+          <span
+            class="text-amber-500 font-light tracking-wider text-xl font-mono"
+            ><span class="text-amber-600">&gt;</span> small binary, persistent
+            context
+          </span>
+        </h1>
+
+        <p
+          class="text-lg sm:text-xl text-zinc-300 max-w-2xl mb-10 leading-relaxed animate-in stagger-2 text-balance"
+        >
+          MiniChat is a lightweight, extensible terminal chat for developers.
+          Start instantly, keep context across sessions, and add tools/skills
+          when you need them.
+        </p>
+
+        <!-- Hero Terminal -->
+        <div
+          class="bg-[#131315] border border-[#232326] rounded-xl overflow-hidden max-w-2xl glow-amber animate-in stagger-3 mb-10"
+        >
+          <div
+            class="flex items-center gap-2 px-4 py-3 border-b border-[#232326]"
+          >
+            <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+            <span class="text-xs text-zinc-600 ml-2 font-mono">~/projects</span>
+          </div>
+          <div class="p-5 font-mono text-sm space-y-3">
+            <p class="flex items-center gap-2 text-xs">
+              <span class="text-[#e2a834]">$</span>
+              <span class="text-zinc-400">mchat</span>
+            </p>
+            <p class="text-xs text-zinc-600">
+              Loaded: 2 recent threads
+              <span class="text-zinc-700">(~/projects/minichat)</span>
+            </p>
+
+            <p class="flex gap-2">
+              <span class="text-[#e2a834] shrink-0">›</span>
+              <span class="text-white"
+                >continue the plugin system we discussed yesterday</span
+              >
+            </p>
+
+            <p class="flex gap-2 text-zinc-400">
+              <span class="text-[#4ade80] shrink-0">&#9670;</span>
+              <span
+                >Last time we decided on a tool manifest. Want
+                <code class="text-zinc-300">JS</code> or
+                <code class="text-zinc-300">Lua</code> first?</span
+              >
+            </p>
+
+            <p class="flex items-center gap-2">
+              <span class="text-[#e2a834]">›</span>
+              <span class="cursor-blink text-zinc-600"></span>
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="flex flex-col items-center gap-2 mb-10 max-w-2xl animate-in stagger-3"
+        >
+          <p
+            class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-sm text-zinc-500"
+          >
+            <span>MIT licensed</span>
+            <span class="text-zinc-700">&middot;</span>
+            <span>Local-first</span>
+            <span class="text-zinc-700">&middot;</span>
+            <span>BYO API key</span>
+            <span class="text-zinc-700">&middot;</span>
+            <span>macOS / Linux / Windows</span>
+          </p>
+          <p
+            class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-zinc-600"
+          >
+            <a
+              href="https://github.com/jcottam/minichat/tree/main"
+              class="hover:text-zinc-400 transition underline underline-offset-2 decoration-zinc-700"
+              >Docs</a
+            >
+            <span class="text-zinc-700">&middot;</span>
+            <a
+              href="https://github.com/jcottam/minichat/issues"
+              class="hover:text-zinc-400 transition underline underline-offset-2 decoration-zinc-700"
+              >Issues</a
+            >
+            <span class="text-zinc-700">&middot;</span>
+            <a
+              href="https://github.com/jcottam/minichat/discussions"
+              class="hover:text-zinc-400 transition underline underline-offset-2 decoration-zinc-700"
+              >Discussions</a
+            >
+          </p>
+        </div>
+
+        <!-- Hero CTA -->
+        <div
+          class="mt-20 flex flex-col items-center gap-4 animate-in stagger-3"
+        >
+          <a
+            href="#get-started"
+            class="inline-flex items-center gap-2 bg-[#e2a834] hover:bg-[#c99229] text-black font-semibold px-8 py-3.5 rounded-xl text-base transition shadow-lg shadow-[#e2a834]/20"
+          >
+            Install
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </a>
+          <div
+            class="flex items-center gap-3 bg-[#131315] border border-[#232326] rounded-lg px-4 py-2.5 font-mono text-sm group cursor-pointer"
+            onclick="
+              navigator.clipboard
+                .writeText(
+                  'git clone https://github.com/jcottam/minichat.git && cd minichat && bun install && bun link',
+                )
+                .then(() => {
+                  const t = this.querySelector('.copied');
+                  t.classList.remove('opacity-0');
+                  setTimeout(() => t.classList.add('opacity-0'), 1500);
+                })
+            "
+          >
+            <span class="text-[#e2a834]">$</span>
+            <span class="text-zinc-300"
+              >git clone &hellip;minichat.git && bun install && bun link</span
+            >
+            <span
+              class="text-zinc-600 hover:text-zinc-400 transition ml-1"
+              title="Copy full command"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+            </span>
+            <span
+              class="copied opacity-0 text-[#4ade80] text-xs transition-opacity"
+              >copied!</span
+            >
+          </div>
+          <p class="text-zinc-600 text-sm">
+            Then run: <code class="font-mono text-zinc-400">mchat</code>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Memory System Section -->
+    <section class="px-6 py-20">
+      <div class="max-w-5xl mx-auto">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+          <div class="reveal">
+            <h2
+              class="text-2xl sm:text-3xl font-medium text-white mb-4 tracking-tight"
+            >
+              Stop re-explaining yourself.
+            </h2>
+            <p class="text-zinc-400 mb-8 leading-relaxed">
+              MiniChat loads your profile, memories, and recent sessions on
+              every launch. Every conversation starts where the last one
+              ended&mdash;no pasting, no catching up.
+            </p>
+
+            <ul class="space-y-4">
+              <li class="flex items-start gap-3">
+                <span class="text-[#4ade80] mt-0.5 text-sm">&#10003;</span>
+                <div>
+                  <span class="text-zinc-200 font-medium"
+                    >Learns as you talk</span
+                  >
+                  <p class="text-sm text-zinc-500 mt-0.5">
+                    Mention your stack, your goals, or your preferences once.
+                    They're tagged as
+                    <code class="font-mono text-xs text-[#e2a834]"
+                      >[MEMORY]</code
+                    >
+                    and saved for next time.
+                  </p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-[#4ade80] mt-0.5 text-sm">&#10003;</span>
+                <div>
+                  <span class="text-zinc-200 font-medium"
+                    >Picks up where you left off</span
+                  >
+                  <p class="text-sm text-zinc-500 mt-0.5">
+                    MiniChat summarizes recent conversations and carries them
+                    forward. Come back days later&mdash;it still has context.
+                  </p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-[#4ade80] mt-0.5 text-sm">&#10003;</span>
+                <div>
+                  <span class="text-zinc-200 font-medium"
+                    >You own your data</span
+                  >
+                  <p class="text-sm text-zinc-500 mt-0.5">
+                    Everything is plain
+                    <code class="font-mono text-xs text-zinc-400">.md</code>
+                    files&mdash;read, edit, or delete them anytime in any
+                    editor.
+                  </p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-[#4ade80] mt-0.5 text-sm">&#10003;</span>
+                <div>
+                  <span class="text-zinc-200 font-medium"
+                    >Clean context, no noise</span
+                  >
+                  <p class="text-sm text-zinc-500 mt-0.5">
+                    Duplicates are caught before they're saved&mdash;your
+                    context stays clean without manual pruning.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Context Assembly Visual -->
+          <div
+            class="bg-[#131315] border border-[#232326] rounded-xl overflow-hidden reveal"
+          >
+            <div
+              class="flex items-center justify-between px-4 py-3 border-b border-[#232326]"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+              </div>
+              <span class="text-xs text-zinc-600 font-mono"
+                >context assembly</span
+              >
+            </div>
+            <pre
+              class="p-5 overflow-x-auto"
+            ><code class="font-mono"><span class="token-comment">// On every launch, MiniChat builds context from:</span>
+
+<span class="token-key">workspace/</span>
+├── <span class="token-key">context/</span>
+│   └── <span class="token-string">system_prompt.md</span>      <span class="token-comment"># base instructions</span>
+├── <span class="token-key">memories/</span>
+│   ├── <span class="token-string">USER.md</span>               <span class="token-comment"># who you are</span>
+│   ├── <span class="token-string">MEMORY.md</span>             <span class="token-comment"># learned facts</span>
+│   └── <span class="token-string">PREFERENCES.md</span>        <span class="token-comment"># how you work</span>
+└── <span class="token-key">sessions/</span>
+    ├── <span class="token-string">session_0218_001.jsonl</span>
+    └── <span class="token-string">session_0219_001.jsonl</span>
+
+<span class="token-comment">// ↓ assembled into one system prompt</span>
+<span class="token-comment">// ↓ sent before your first message</span>
+
+<span class="token-key">system_prompt</span> = [
+  <span class="token-string">base_instructions</span>,
+  <span class="token-string">user_profile</span>,
+  <span class="token-string">learned_memories</span>,
+  <span class="token-string">preferences</span>,
+  <span class="token-string">recent_sessions</span>  <span class="token-comment">// last 3</span>
+].<span class="token-bool">join</span>(<span class="token-string">"---"</span>)</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="features" class="px-6 py-20 scroll-mt-20">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-14 reveal">
+          <h2
+            class="text-2xl sm:text-3xl font-medium text-white mb-4 tracking-tight"
+          >
+            Everything happens in the terminal.
+          </h2>
+          <p class="text-zinc-500 max-w-xl mx-auto text-balance">
+            No electron apps. No browser tabs. A fast, lightweight CLI with
+            persistent memory and an extensible tools ecosystem.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Feature 1 -->
+          <div
+            class="feature-card bg-[#131315] border border-[#232326] rounded-xl p-6 hover:border-[#e2a834]/30 reveal"
+          >
+            <div
+              class="w-10 h-10 bg-[#e2a834]/10 rounded-lg flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-5 h-5 text-[#e2a834]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+            </div>
+            <h3 class="font-medium text-white mb-2">Persistent Memory</h3>
+            <p class="text-sm text-zinc-500">
+              Mention something once and it's saved. Your facts carry forward
+              across every session&mdash;no re-explaining.
+            </p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div
+            class="feature-card bg-[#131315] border border-[#232326] rounded-xl p-6 hover:border-[#67e8f9]/30 reveal"
+          >
+            <div
+              class="w-10 h-10 bg-[#67e8f9]/10 rounded-lg flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-5 h-5 text-[#67e8f9]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 class="font-medium text-white mb-2">Session History</h3>
+            <p class="text-sm text-zinc-500">
+              Past conversations are summarized and loaded into every new chat.
+              Come back days later and it still has context.
+            </p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div
+            class="feature-card bg-[#131315] border border-[#232326] rounded-xl p-6 hover:border-[#a78bfa]/30 reveal"
+          >
+            <div
+              class="w-10 h-10 bg-[#a78bfa]/10 rounded-lg flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-5 h-5 text-[#a78bfa]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h3 class="font-medium text-white mb-2">Slash Commands</h3>
+            <p class="text-sm text-zinc-500">
+              Type
+              <code class="font-mono text-xs text-zinc-400">/memories</code> or
+              <code class="font-mono text-xs text-zinc-400">/profile</code> to
+              inspect your context. Fuzzy-filtered palette with keyboard nav.
+            </p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div
+            class="feature-card bg-[#131315] border border-[#232326] rounded-xl p-6 hover:border-[#fb923c]/30 reveal"
+          >
+            <div
+              class="w-10 h-10 bg-[#fb923c]/10 rounded-lg flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-5 h-5 text-[#fb923c]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                />
+              </svg>
+            </div>
+            <h3 class="font-medium text-white mb-2">Fast Startup</h3>
+            <p class="text-sm text-zinc-500">
+              Your profile, memories, and sessions are assembled into one prompt
+              on launch. No database, no daemon&mdash;just files.
+            </p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div
+            class="feature-card bg-[#131315] border border-[#232326] rounded-xl p-6 hover:border-[#4ade80]/30 reveal"
+          >
+            <div
+              class="w-10 h-10 bg-[#4ade80]/10 rounded-lg flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-5 h-5 text-[#4ade80]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <h3 class="font-medium text-white mb-2">Plain Markdown</h3>
+            <p class="text-sm text-zinc-500">
+              Memories, preferences, and profile are plain
+              <code class="font-mono text-xs text-zinc-400">.md</code> files.
+              Open them in any editor. No proprietary formats.
+            </p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div
+            class="feature-card bg-[#131315] border border-[#232326] rounded-xl p-6 hover:border-[#f472b6]/30 reveal"
+          >
+            <div
+              class="w-10 h-10 bg-[#f472b6]/10 rounded-lg flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-5 h-5 text-[#f472b6]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
+              </svg>
+            </div>
+            <h3 class="font-medium text-white mb-2">Extensible by Design</h3>
+            <p class="text-sm text-zinc-500">
+              Add tools, skills, and custom slash commands. TypeScript + Ink
+              TUI&mdash;fork it, extend it, make it yours.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Terminal Session Demo -->
+    <section class="px-6 py-20">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12 reveal">
+          <h2
+            class="text-2xl sm:text-3xl font-medium text-white mb-4 tracking-tight"
+          >
+            See it remember.
+          </h2>
+          <p class="text-zinc-500">
+            A fact from Monday's session shows up in Thursday's
+            answer&mdash;without being asked.
+          </p>
+        </div>
+
+        <div
+          class="bg-[#131315] border border-[#232326] rounded-xl overflow-hidden glow-amber-sm reveal"
+        >
+          <div
+            class="flex items-center gap-2 px-4 py-3 border-b border-[#232326]"
+          >
+            <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+            <span class="text-xs text-zinc-600 ml-2 font-mono"
+              >mchat &mdash; session 004</span
+            >
+          </div>
+          <div class="p-5 font-mono text-sm space-y-5">
+            <div>
+              <p>
+                <span class="text-[#e2a834]">›</span>
+                <span class="text-white"
+                  >I'm going all in on a productized service model. One offer,
+                  one audience — dev tools for solo founders. No more
+                  freelancing.</span
+                >
+              </p>
+            </div>
+            <div class="pl-4 border-l-2 border-[#232326]">
+              <p class="text-zinc-400 text-xs leading-relaxed">
+                Smart constraint. One offer lets you refine positioning<br />and
+                stack proof fast. What's the price point?
+              </p>
+              <p class="text-zinc-400 text-xs mt-2 leading-relaxed">
+                <span class="text-[#a78bfa]">[MEMORY]</span> Pivoting to
+                productized service: dev tools for solo founders. Leaving
+                freelance.
+              </p>
+            </div>
+            <div>
+              <p class="text-[#e2a834] text-xs">
+                ✦ Memory saved: Pivoting to productized service — dev tools for
+                solo founders
+              </p>
+            </div>
+
+            <div class="border-t border-[#232326]/60 pt-5">
+              <p class="text-zinc-600 text-xs italic">
+                ... three days later, new session ...
+              </p>
+            </div>
+
+            <div>
+              <p>
+                <span class="text-[#e2a834]">›</span>
+                <span class="text-white"
+                  >I need a landing page that converts. What should the headline
+                  focus on?</span
+                >
+              </p>
+            </div>
+            <div class="pl-4 border-l-2 border-[#232326]">
+              <p class="text-zinc-400 text-xs leading-relaxed">
+                Since you're targeting solo founders with a productized<br />dev
+                tools offer, lead with the outcome they're buying:<br />speed to
+                launch. Something like
+                <span class="text-[#4ade80]"
+                  >"Ship your SaaS in 2 weeks,<br />not 2 months"</span
+                >
+                — specific, measurable, speaks their language.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Getting Started -->
+    <section id="get-started" class="px-6 py-20 scroll-mt-20">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-14 reveal">
+          <h2
+            class="text-2xl sm:text-3xl font-medium text-white mb-4 tracking-tight"
+          >
+            Up and running in 60 seconds.
+          </h2>
+          <p class="text-zinc-500">
+            All you need is
+            <a
+              href="https://bun.sh"
+              target="_blank"
+              rel="noopener"
+              class="text-[#e2a834] hover:underline"
+              >Bun</a
+            >
+            and an
+            <a
+              href="https://console.anthropic.com/"
+              target="_blank"
+              rel="noopener"
+              class="text-[#e2a834] hover:underline"
+              >Anthropic API key</a
+            >.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <!-- Step 1 -->
+          <div
+            class="bg-[#131315] border border-[#232326] rounded-xl p-6 reveal"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span
+                class="font-mono text-xs text-[#e2a834] bg-[#e2a834]/10 w-7 h-7 rounded-lg flex items-center justify-center font-semibold"
+                >1</span
+              >
+              <span class="text-sm font-medium text-white"
+                >Clone &amp; install</span
+              >
+            </div>
+            <div class="bg-[#0a0a0b] rounded-lg p-3 font-mono text-xs">
+              <p class="text-zinc-500">
+                <span class="text-[#4ade80]">$</span>
+                <span class="text-zinc-300"
+                  >git clone https://github.com/jcottam/minichat.git</span
+                >
+              </p>
+              <p class="text-zinc-500">
+                <span class="text-[#4ade80]">$</span>
+                <span class="text-zinc-300">cd minichat && bun install</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div
+            class="bg-[#131315] border border-[#232326] rounded-xl p-6 reveal"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span
+                class="font-mono text-xs text-[#e2a834] bg-[#e2a834]/10 w-7 h-7 rounded-lg flex items-center justify-center font-semibold"
+                >2</span
+              >
+              <span class="text-sm font-medium text-white"
+                >Set your API key</span
+              >
+            </div>
+            <div class="bg-[#0a0a0b] rounded-lg p-3 font-mono text-xs">
+              <p class="text-zinc-500">
+                <span class="text-[#4ade80]">$</span>
+                <span class="text-zinc-300">mkdir -p ~/.config/minichat</span>
+              </p>
+              <p class="text-zinc-500">
+                <span class="text-[#4ade80]">$</span>
+                <span class="text-zinc-300"
+                  >echo "ANTHROPIC_API_KEY=sk-ant-..." \</span
+                >
+              </p>
+              <p class="text-zinc-500">
+                &nbsp;&nbsp;<span class="text-zinc-300"
+                  >&gt; ~/.config/minichat/.env</span
+                >
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div
+            class="bg-[#131315] border border-[#232326] rounded-xl p-6 reveal"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span
+                class="font-mono text-xs text-[#e2a834] bg-[#e2a834]/10 w-7 h-7 rounded-lg flex items-center justify-center font-semibold"
+                >3</span
+              >
+              <span class="text-sm font-medium text-white"
+                >Register globally</span
+              >
+            </div>
+            <div class="bg-[#0a0a0b] rounded-lg p-3 font-mono text-xs">
+              <p class="text-zinc-500">
+                <span class="text-[#4ade80]">$</span>
+                <span class="text-zinc-300">bun link</span>
+              </p>
+              <p class="text-zinc-600 mt-1">→ Registered mchat in ~/.bun/bin</p>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div
+            class="bg-[#131315] border border-[#232326] rounded-xl p-6 reveal"
+          >
+            <div class="flex items-center gap-3 mb-4">
+              <span
+                class="font-mono text-xs text-[#e2a834] bg-[#e2a834]/10 w-7 h-7 rounded-lg flex items-center justify-center font-semibold"
+                >4</span
+              >
+              <span class="text-sm font-medium text-white">Start chatting</span>
+            </div>
+            <div class="bg-[#0a0a0b] rounded-lg p-3 font-mono text-xs">
+              <p class="text-zinc-500">
+                <span class="text-[#4ade80]">$</span>
+                <span class="text-zinc-300">mchat</span>
+              </p>
+              <p class="text-[#4ade80] mt-1">
+                ✓ Context assembled. Ready to chat.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="px-6 py-24">
+      <div class="max-w-2xl mx-auto text-center reveal">
+        <h2
+          class="text-3xl sm:text-4xl font-medium text-white mb-4 tracking-tight"
+        >
+          Minimal bytes, maximum vibes.
+        </h2>
+        <p class="text-zinc-500 mb-10">
+          Install MiniChat, add your API key, and pick up every conversation
+          where you left off.
+        </p>
+
+        <div
+          class="relative bg-[#131315] border border-[#232326] rounded-xl p-4 max-w-lg mx-auto mb-8 glow-amber-sm group"
+        >
+          <code class="font-mono text-sm text-zinc-300"
+            >git clone https://github.com/jcottam/minichat.git</code
+          >
+          <button
+            onclick="
+              navigator.clipboard
+                .writeText('git clone https://github.com/jcottam/minichat.git')
+                .then(() => {
+                  const i = this.querySelector('.icon-copy'),
+                    c = this.querySelector('.icon-check');
+                  i.classList.add('hidden');
+                  c.classList.remove('hidden');
+                  setTimeout(() => {
+                    c.classList.add('hidden');
+                    i.classList.remove('hidden');
+                  }, 1500);
+                })
+            "
+            class="absolute top-2.5 right-2.5 p-1.5 rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-white/5 transition opacity-0 group-hover:opacity-100"
+            title="Copy to clipboard"
+          >
+            <svg
+              class="w-4 h-4 icon-copy"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <rect
+                x="9"
+                y="9"
+                width="13"
+                height="13"
+                rx="2"
+                stroke-width="2"
+              />
+              <path
+                d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"
+                stroke-width="2"
+              />
+            </svg>
+            <svg
+              class="w-4 h-4 icon-check hidden text-[#4ade80]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-center gap-8 text-sm">
+          <a
+            href="https://github.com/jcottam/minichat/tree/main"
+            target="_blank"
+            rel="noopener"
+            class="text-zinc-400 hover:text-white transition flex items-center gap-2 group"
+          >
+            <svg
+              class="w-5 h-5 group-hover:scale-110 transition-transform"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              />
+            </svg>
+            Get the Source
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 px-6">
+      <div
+        class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
+        <div class="flex items-center gap-3">
+          <span
+            class="font-medium text-zinc-500 text-sm tracking-widest uppercase font-display"
+            >MINICHAT</span
+          >
+          <span class="text-zinc-600 text-sm"
+            >&copy; 2026 John Ryan Cottam</span
+          >
+        </div>
+        <div class="flex gap-6 text-sm text-zinc-600">
+          <a
+            href="https://github.com/jcottam/minichat/tree/main"
+            target="_blank"
+            rel="noopener"
+            class="hover:text-white transition"
+            >GitHub</a
+          >
+        </div>
+      </div>
+    </footer>
+
+    <!-- Scroll Reveal Script -->
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
+      );
+
+      document
+        .querySelectorAll(".reveal")
+        .forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>
