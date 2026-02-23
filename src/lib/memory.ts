@@ -10,13 +10,12 @@ import { getCurrentSessionId } from "./session";
 import { upsertMemory, isVectorEnabled } from "./vector";
 
 const STORE_ROOT = join(import.meta.dir, "../../workspace/");
-const FACTS_FILE = join(STORE_ROOT, "context/MEMORY.md");
-const CONTEXT_DIR = join(STORE_ROOT, "context");
+const FACTS_FILE = join(STORE_ROOT, "MEMORY.md");
 
 export function readMemoryFile(filename: string): string {
-  const filePath = join(CONTEXT_DIR, filename);
+  const filePath = join(STORE_ROOT, filename);
   if (!existsSync(filePath)) {
-    return `No file found at workspace/context/${filename}`;
+    return `No file found at workspace/${filename}`;
   }
   return readFileSync(filePath, "utf-8");
 }
@@ -95,7 +94,7 @@ function saveFact(fact: string): boolean {
   const memoryId = dbInsertMemory(fact, "general", sessionId, new Date().toISOString());
 
   if (isVectorEnabled()) {
-    upsertMemory(memoryId, fact, "general").catch(() => {});
+    upsertMemory(memoryId, fact, "general").catch(() => { });
   }
 
   return true;

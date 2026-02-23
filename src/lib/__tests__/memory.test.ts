@@ -11,7 +11,7 @@ import { _initForTesting } from "../session";
 import { extractAndSaveMemories, getActiveMemories } from "../memory";
 
 const SESSION_ID = "test-mem-001";
-const MEMORY_FILE = join(import.meta.dir, "../../../workspace/context/MEMORY.md");
+const MEMORY_FILE = join(import.meta.dir, "../../../workspace/MEMORY.md");
 let originalMemoryContent: string | null = null;
 
 beforeAll(() => {

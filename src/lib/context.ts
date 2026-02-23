@@ -92,27 +92,45 @@ function getRecentSessions(n: number): Session[] {
   });
 }
 
+/**
+ * Summarizes a past chat session by formatting its key details as a Markdown string.
+ * The summary starts with the session title, then lists each message as either "User" or "Assistant"
+ * along with an excerpt (up to 200 characters) of the message content. Long messages are truncated with an ellipsis.
+ *
+ * @param session - The Session object containing metadata and a list of message objects
+ * @returns A Markdown string summarizing the session's conversations
+ */
 function summarizeSession(session: Session): string {
+  // Begin with a Markdown-level 2 heading naming the session
   const lines = [`## Past session: "${session.title}"`];
+
+  // Iterate through each message in the session, formatting the role and excerpt
   for (const msg of session.messages) {
+    // Normalize the role to a capitalized label
     const role = msg.role === "user" ? "User" : "Assistant";
+    // Grab the first 200 characters of the content; append "…" if truncated
     const excerpt = msg.content.slice(0, 200) + (msg.content.length > 200 ? "…" : "");
+    // Add the formatted line to the summary
     lines.push(`${role}: ${excerpt}`);
   }
+  // Join all parts with line breaks to produce the final summary
   return lines.join("\n");
 }
 
 export function buildSystemPrompt(nRecentSessions = 3): string {
   const parts: string[] = [];
 
-  const systemPrompt = readFile(join(STORE_ROOT, "context/SYSTEM.md"));
+  const systemPrompt = readFile(join(STORE_ROOT, "AGENTS.md"));
   if (systemPrompt) parts.push(systemPrompt);
 
-  const contextDir = join(STORE_ROOT, "context");
-  if (existsSync(contextDir)) {
-    const userMd = readFile(join(contextDir, "USER.md"));
-    if (userMd) parts.push(userMd);
-  }
+  const agentMd = readFile(join(STORE_ROOT, "AGENT.md"));
+  if (agentMd) parts.push(agentMd);
+
+  const userMd = readFile(join(STORE_ROOT, "USER.md"));
+  if (userMd) parts.push(userMd);
+
+  const memoryMd = readFile(join(STORE_ROOT, "MEMORY.md"));
+  if (memoryMd) parts.push(memoryMd);
 
   const skillsCatalog = loadSkillsCatalog();
   if (skillsCatalog) parts.push(skillsCatalog);
@@ -125,6 +143,7 @@ export function buildSystemPrompt(nRecentSessions = 3): string {
     }
     parts.push(memoryLines.join("\n"));
   }
+  // console.log("activeMemories", activeMemories);
 
   const sessions = getRecentSessions(nRecentSessions);
   for (const session of sessions) {
@@ -149,7 +168,7 @@ export async function buildAugmentedPrompt(
 
   const parts: string[] = [];
 
-  const systemPrompt = readFile(join(STORE_ROOT, "context/SYSTEM.md"));
+  const systemPrompt = readFile(join(STORE_ROOT, "AGENTS.md"));
   if (systemPrompt) parts.push(systemPrompt);
 
   const contextDir2 = join(STORE_ROOT, "context");

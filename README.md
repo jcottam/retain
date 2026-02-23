@@ -91,7 +91,7 @@ The model has access to three tools and uses them autonomously when a request re
 
 Every launch, Spark builds a system prompt from four sources:
 
-1. **System instructions** -- `workspace/context/SYSTEM.md`
+1. **System instructions** -- `workspace/context/AGENTS.md`
 2. **User profile** -- `workspace/context/USER.md`
 3. **Active memories** -- all non-superseded facts from SQLite (or semantically relevant facts via Upstash Vector when configured)
 4. **Recent sessions** -- the 3 most recent conversations, summarized as title + message excerpts (or the most relevant sessions via vector search)
@@ -118,7 +118,7 @@ After each reply, Spark scans the response for `[MEMORY]` blocks, deduplicates a
 ✦ Memory saved: Uses Bun as the JS runtime
 ```
 
-Saved facts are also synced to `workspace/context/MEMORY.md` for easy reading and manual editing.
+Saved facts are also synced to `workspace/MEMORY.md` for easy reading and manual editing.
 
 ## Architecture
 
@@ -152,7 +152,7 @@ Each session file is a series of newline-delimited JSON objects. The first line 
 spark/
 ├── workspace/
 │   ├── context/
-│   │   ├── SYSTEM.md              # System prompt and behavior instructions
+│   │   ├── AGENTS.md              # System prompt and behavior instructions
 │   │   ├── USER.md                # Static user profile
 │   │   └── MEMORY.md              # Synced copy of active memories
 │   ├── sessions/                  # Append-only JSONL session files
@@ -178,9 +178,9 @@ spark/
 
 | File                          | Purpose                                                              |
 | ----------------------------- | -------------------------------------------------------------------- |
-| `workspace/context/SYSTEM.md` | Base system prompt: behavior rules, memory instructions, tool access |
+| `workspace/context/AGENTS.md` | Base system prompt: behavior rules, memory instructions, tool access |
 | `workspace/context/USER.md`   | Static profile: name, location, preferences, communication style     |
-| `workspace/context/MEMORY.md` | Auto-synced copy of active memories from SQLite                      |
+| `workspace/MEMORY.md`         | Auto-synced copy of active memories from SQLite                      |
 | `workspace/spark.db`          | SQLite database: sessions, messages, memories, FTS indexes           |
 | `workspace/sessions/*.jsonl`  | Append-only session logs (also stored in SQLite)                     |
 
